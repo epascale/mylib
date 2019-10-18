@@ -26,6 +26,6 @@ def airy(x, norm = 'area'):
   elif norm == 'peak':
       normalization = 1.0
   else:
-      print 'normalization method not supported'
+      print('normalization method not supported')
   
   return normalization * airy

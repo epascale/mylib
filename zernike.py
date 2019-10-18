@@ -20,7 +20,7 @@ http://creativecommons.org/licenses/by-sa/3.0/
 
 #import pyfits
 import numpy as N
-from scipy.misc import factorial as fac
+from scipy.special import factorial as fac
 
 ### Init functions
 def zernike_rad(m, n, rho):
