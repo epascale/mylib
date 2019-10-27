@@ -47,3 +47,15 @@ def get_rpe(freq, psd, delta_t):
     F_WV  = __F_wv__(freq, delta_t)
     rpe2 = 11.8*np.trapz(psd*F_WV, x = freq)
     return np.sqrt(rpe2)
+
+def get_pde_filter(f, dt, dts):
+  return __F_wms__(f, dt, dts)
+
+def get_rpe_filter(f, dt):
+  return __F_wv__(f, dt)
+
+def get_mpe_filter(f, dt):
+  return __F_wm__(f, dt)
+
+def get_rpe_mpe_filter(f, dt1, dt2):
+  return __F_wv__(f, dt1) * __F_wm__(f, dt2)
