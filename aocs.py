@@ -38,17 +38,21 @@ def __F_wms__(f, dt, dts):
   return w
 
 
-def get_pde(freq, psd, delta_t, delta_ts):
+def get_pde(freq, psd, delta_t=90.0, delta_ts=10.0*3600.0):
+    # For Ariel: delta_t = 90s, 300s
+    #            delta_ts = 10*3600
     F_WMS = __F_wms__(freq, delta_t, delta_ts)
     pde2 = 11.8*np.trapz(psd*F_WMS, x = freq)
     return np.sqrt(pde2)
 
-def get_rpe(freq, psd, delta_t):
+def get_rpe(freq, psd, delta_t=0.1):
     F_WV  = __F_wv__(freq, delta_t)
     rpe2 = 11.8*np.trapz(psd*F_WV, x = freq)
     return np.sqrt(rpe2)
 
-def get_mpe_rpe(freq, psd, dt1, dt2):
+def get_mpe_rpe(freq, psd, dt1=90.0, dt2=0.1):
+    # dt1 = 90.0, 300.0
+    # dt2 = 0.1 
     F_WV  = __F_wv__(freq, dt1) * __F_wm__(freq, dt2)
     rpe2 = 11.8*np.trapz(psd*F_WV, x = freq)
     return np.sqrt(rpe2)
