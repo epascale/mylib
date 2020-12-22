@@ -9,7 +9,7 @@ class Elliptical(object):
     The orthgonalization is implemented as a Cholesky decomposition of the symmetroc matrix of inner products
     Zernike polynomials as described in Eq. 3-27 of the above reference. 
     
-    The ordering of Zernike polynomials used is "noll", and the Zernike polynomials are normalised to unit RMS
+    The ordering of Zernike polynomials used is "noll" by default, and the Zernike polynomials are normalised to unit RMS
     on the circle circumscribing the elliptical aperture. 
     
     It is assumed that elliptical pupil has major and minor axes aligned to the cardinal axes, and it encloses the
@@ -26,6 +26,7 @@ class Elliptical(object):
         Azimuthal coordinate in radians. Has same shape as phi
     
     c   : the ratio of the semi-axis aligned to the y-axis to the semi-axis aligned to x-axis
+    ordering : 'noll' (default) or 'ansi'
     
     Returns
     -------
@@ -52,16 +53,21 @@ class Elliptical(object):
     
     Y = elliptical()
     plt.imshow(Y[4])
+    plt.show()
+    
+    plt.imshow(elliptical(4))
+    plt.imshow()
+    
     """
     
-    def __init__(self, N, rho, phi, c):
+    def __init__(self, N, rho, phi, c, ordering='noll'):
         
         x = rho*np.cos(phi)
         y = rho*np.sin(phi)
         
         mask = x**2 + y**2/c**2 > 1
         
-        _rho_ = np.ma.masked_array(data=rho, mask = mask)
+        _rho_ = np.ma.MaskedArray(data=rho, mask = mask)
         phi = np.arctan2(y, x)
         
         # force closure of order
@@ -69,24 +75,27 @@ class Elliptical(object):
         n = np.ceil(k/2).astype(np.int)
         Npoly = n*(n+1)//2
         
-        self.zer = Zernike(Npoly, _rho_, phi, ordering='noll', normalize=True)()
-
-        self.Czz = np.empty( (len(self.zer), len(self.zer)), dtype = self.zer[0].dtype)
-
-        for i in range(self.Czz.shape[1]):
-            for j in range(i, self.Czz.shape[0]):
-                self.Czz[j, i] = self.Czz[i, j] = np.ma.mean(self.zer[i]*self.zer[j])
+        if Npoly != N: print('WARNING: Elliptical, number of poly used does not close order. Order closure forced.')
+            
+        self.zer = Zernike(Npoly, _rho_, phi, ordering=ordering, normalize=True)()
         
+        YY = np.ma.MaskedArray(self.zer, fill_value=0.0)
+        self.Czz = np.tensordot(YY.filled(), YY.filled(), axes=((1,2),(1,2)))/self.zer[0].count()
         self.Qt = np.linalg.cholesky(self.Czz)
         self.M = np.linalg.inv(self.Qt)
+        idx = np.where( np.abs(self.M) < 1.0e-10)
+        self.M[idx] = 0.0
+        
        
-        self.Y = []
-        for i in range(self.M.shape[0]):
-            ser = [self.M[i,j]*self.zer[j] for j in range(i+1)]
-            self.Y.append(np.ma.masked_array(ser).sum(axis=0))
-     
+        self.Y = np.ma.MaskedArray(data = np.tensordot(self.M, YY.filled(), axes=([1],[0])),
+                                   mask = YY.mask,
+                                   fill_value = 0.0)
+    
+        
     def __call__(self, *index):
         if index:
             return self.Y[index[0]]
         else:
             return self.Y
+
+    

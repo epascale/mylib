@@ -26,6 +26,28 @@ class Zernike:
     -------
     out : an instance of Zernike.
     
+    Example
+    _______
+    
+    import numpy as np
+    from matplotlib import pyplot as plt
+    
+    x = np.linspace(-1.0, 1.0, 1024)
+    xx, yy = np.meshgrid(x, x)
+    rho = np.sqrt(xx**2 + yy**2)
+    phi = np.arctan2(yy, xx)
+    
+    zernike = Zernike(36, rho, phi, ordering='noll', normalize=True)
+    
+    zer = zernike() # zer contains a list of polynomials, noll-ordered
+    
+    # Plot the defocus zernike polynomial
+    plt.imshow(zer[3])
+    plt.show()
+    
+    # Plot the defocus zernike polynomial
+    plt.imshow(zernike(3))
+    plt.show()
     
     """
     def __init__(self, N, rho, phi, ordering='ansi', normalize = False):
