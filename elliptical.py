@@ -23,7 +23,8 @@ class Elliptical(object):
     rho : array like
         the radial coordinate normalised to the interval [0, 1]. Values of rho > 1 are masked.
     phi : array like
-        Azimuthal coordinate in radians. Has same shape as phi
+        Azimuthal coordinate in radians. Has same shape as rho. The angle is counted clockwise positive from
+        the y-axis, as in figure 2 of DOI: 10.1080/09500340.2011.633763
     
     c   : the ratio of the semi-axis aligned to the y-axis to the semi-axis aligned to x-axis
     ordering : 'noll' (default) or 'ansi'
@@ -62,8 +63,8 @@ class Elliptical(object):
     
     def __init__(self, N, rho, phi, c, ordering='noll'):
         
-        x = rho*np.cos(phi)
-        y = rho*np.sin(phi)
+        x = rho*np.sin(phi)
+        y = rho*np.cos(phi)
         
         mask = x**2 + y**2/c**2 > 1
         

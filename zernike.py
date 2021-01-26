@@ -13,7 +13,8 @@ class Zernike:
     rho : array like
         the radial coordinate normalised to the interval [0, 1]
     phi : array like
-        Azimuthal coordinate in radians. Has same shape as phi
+        Azimuthal coordinate in radians. Has same shape as rho. The angle is counted clockwise positive from
+        the y-axis, as in figure 2 of DOI: 10.1080/09500340.2011.633763
     ordering : string
         Can be either ANSI ordering (ordering='ansi', this is the default), or Noll ordering
         (ordering='noll')
@@ -65,14 +66,17 @@ class Zernike:
         else:
             self.norm = np.ones(self.N, dtype = np.float)
             
-        Z = {}
         mask = rho > 1.0
+        if isinstance(rho, np.ma.MaskedArray):
+            rho.mask |= mask
+        else:
+            rho = np.ma.MaskedArray(data=rho, mask=mask, fill_value=0.0)
+            
+        Z = {}
         for n in range(max(self.n)+1):
             Z[n] = {}
             for m in range(-n, 1, 2):
-                Z[n][m] = np.ma.masked_array(data=self.__ZradJacobi__(m, n, rho), 
-                                             mask = mask, 
-                                             fill_value=0.0)
+                Z[n][m] = data=self.__ZradJacobi__(m, n, rho) 
                 Z[n][-m] = Z[n][m].view()
                 
         self.Zrad = [Z[n][m].view() for m, n in zip(self.m, self.n)]
@@ -83,6 +87,7 @@ class Zernike:
             Z[-m] = np.sin(m*phi)
         self.Zphi = [Z[m].view() for m in self.m]
         
+        self.Z = np.ma.MaskedArray([self.norm[k]*self.Zrad[k]*self.Zphi[k] for k in range(self.N)])
         
     def __call__(self, j = None):
         """
@@ -94,14 +99,15 @@ class Zernike:
         
         Returns
         -------
-        out : masked array or list of masked arrays
-          if j is set to None, the output is a list of polynomials as masked arrays.
+        out : masked array
+          if j is set to None, the output is a masked array where the first dimension
+          has the size of the number of polynomials requested.
           When j is set to an integer, returns the j-th polynomial as a masked array.
         """
         if j is None:
-            return [self.norm[k]*self.Zrad[k]*self.Zphi[k] for k in range(self.N)]
+            return self.Z
         else:
-            return self.norm[j]*self.Zrad[j]*self.Zphi[j]
+            return self.Z[j]
         
     def __j2mn__(self):
         '''
@@ -201,6 +207,34 @@ class Zernike:
 
         return sum(pre_fac(k) * rho**(n-2*k) for k in range((n-m)//2+1))
 
-
+    def cov(self):
+        ''' 
+        Computes the covariance matrix M defined as
+        
+            M[i, j] = np.mean( Z[i, ...]*Z[j, ...]
+            
+        When a pupil is defined as Phi = Sum c[k] Z[k, ...], the pupil RMS can be calculated as
+            
+            RMS = np.sqrt( np.dot(c, np.dot(M, c)) )
+        
+        This works also on a non-circular pupil, provided that the polynomials are masked over the pupil.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        M : array
+          the covariance matrix
+        '''
+        cov = np.empty( (self.Z.shape[0], self.Z.shape[0]) )
+        for i in range(self.Z.shape[0]):
+            for j in range(i, self.Z.shape[0]):
+                cov[i, j] = cov[j, i] = np.ma.mean(self.Z[i]*self.Z[j])
+        
+        cov[cov<1e-10] = 0.0
+        
+        return cov
 
   
