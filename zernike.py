@@ -13,8 +13,7 @@ class Zernike:
     rho : array like
         the radial coordinate normalised to the interval [0, 1]
     phi : array like
-        Azimuthal coordinate in radians. Has same shape as rho. The angle is counted clockwise positive from
-        the y-axis, as in figure 2 of DOI: 10.1080/09500340.2011.633763
+        Azimuthal coordinate in radians. Has same shape as rho. 
     ordering : string
         Can be either ANSI ordering (ordering='ansi', this is the default), or Noll ordering
         (ordering='noll')
@@ -50,6 +49,15 @@ class Zernike:
     plt.imshow(zernike(3))
     plt.show()
     
+    Note
+    ----
+    In the example, the polar angle is counted counter-clockwise positive from the 
+    x axis. To have a polar angle that is clockwise positive from the y axis (as in figure 2 of DOI: 10.1080/09500340.2011.633763) use
+    phi = 0.5*np.pi - np.arctan2(yy, xx)
+    
+
+    
+
     """
     def __init__(self, N, rho, phi, ordering='ansi', normalize = False):
         
@@ -59,7 +67,7 @@ class Zernike:
         
         self.ordering = ordering
         self.N = N
-        self.m, self.n = self.__j2mn__()
+        self.m, self.n = self.j2mn(N, ordering)
         
         if normalize:
             self.norm = [np.sqrt(n+1) if m == 0 else np.sqrt(2.0*(n+1)) for m, n in zip(self.m, self.n)] 
@@ -87,7 +95,7 @@ class Zernike:
             Z[-m] = np.sin(m*phi)
         self.Zphi = [Z[m].view() for m in self.m]
         
-        self.Z = np.ma.MaskedArray([self.norm[k]*self.Zrad[k]*self.Zphi[k] for k in range(self.N)])
+        self.Z = np.ma.MaskedArray([self.norm[k]*self.Zrad[k]*self.Zphi[k] for k in range(self.N)], fill_value=0.0)
         
     def __call__(self, j = None):
         """
@@ -108,36 +116,64 @@ class Zernike:
             return self.Z
         else:
             return self.Z[j]
+    
+    @staticmethod
+    def j2mn(N, ordering):
+        '''
+        Convert index j into azimuthal number, m, and radial number, n
+        for the first N Zernikes
         
-    def __j2mn__(self):
+        Parameters
+        ----------
+        N: integer
+            Number of polynomials (starting from Piston)
+        ordering: string
+            can take values 'ansi', 'noll', 'fringe'
+        
+        Returns
+        -------
+        m, n: array
+        
         '''
-        Convert index j into azimithal number, m, and radial number, n.
-        '''
-        n = np.empty(self.N, dtype=int)
-        j = np.arange(self.N, dtype=int)
-        if self.ordering == 'ansi':
+        j = np.arange(N, dtype=int)
+        
+        if ordering == 'ansi':
             n = np.ceil((-3.0+np.sqrt(9.0+8.0*j))/2.0).astype(int)
             m = 2*j - n*(n+2)
-        elif self.ordering == 'noll':
+        elif ordering == 'noll':
             index = j + 1
             n = ((0.5 * (np.sqrt(8 * index - 7) - 3)) + 1).astype(int)
             cn = n * (n + 1) / 2 + 1
-            m = np.empty(self.N, dtype=int)
+            m = np.empty(N, dtype=int)
             idx = n % 2 == 0
             m[idx] = (index[idx] - cn[idx] + 1) // 2 * 2
             m[~idx] = (index[~idx] - cn[~idx]) // 2 * 2 + 1
             m = (-1)**(index%2)*m 
+        elif ordering == 'fringe':
+            index = j+1
+            m_n = 2 * (np.ceil(np.sqrt(index)) - 1)
+            g_s = (m_n / 2)**2 + 1
+            n = m_n / 2 + np.floor((index - g_s) / 2) 
+            m = (m_n - n) * (1 - np.mod(index-g_s, 2) * 2)
+            return m.astype(int), n.astype(int)
         else:
             raise NameError("Ordering not supported.")
 
         return m, n
 
-    def __mn2j__(self):
+    def mn2j(self, m, n, ordering):
         '''
         Convert radial and azimuthal numbers, respectively n and m, into index j 
         '''
-        if self.ordering == 'ansi':
+        if ordering == 'ansi':
             return (self.n*(self.n+2) + self.m)//2
+        elif ordering == 'fringe':
+            a = (1 + (n + np.abs(m))/2)**2
+            b = 2 * np.abs(m)
+            c = (1 + np.sign(m)) / 2
+            return (a - b - c).astype(int) + 1
+        elif ordering == 'noll':
+            raise NameError("Noll ordering not supported.")
         else:
             raise NameError("Ordering not supported.")
         
