@@ -16,7 +16,7 @@ class Zernike:
         Azimuthal coordinate in radians. Has same shape as rho. 
     ordering : string
         Can be either ANSI ordering (ordering='ansi', this is the default), or Noll ordering
-        (ordering='noll')
+        (ordering='noll'), or Fringe ordering (ordering='fringe'), or Standard (Born&Wolf) ordering (ordering='standard')
     normalize : bool
         Set to True generates ortho-normal polynomials. Set to False generates orthogonal polynomials
         as described in Laksminarayan & Fleck, Journal of Modern Optics (2011). The radial polynomial 
@@ -62,8 +62,8 @@ class Zernike:
     def __init__(self, N, rho, phi, ordering='ansi', normalize = False):
         
         
-        assert ordering in ('ansi', 'noll'), 'Unrecognised ordering scheme.'
-        assert N >= 0, 'N shall be a positive integer'
+        assert ordering in ('ansi', 'noll', 'fringe', 'standard'), 'Unrecognised ordering scheme.'
+        assert N > 0, 'N shall be a positive integer'
         
         self.ordering = ordering
         self.N = N
@@ -139,7 +139,10 @@ class Zernike:
         
         if ordering == 'ansi':
             n = np.ceil((-3.0+np.sqrt(9.0+8.0*j))/2.0).astype(int)
-            m = 2*j - n*(n+2)
+            m =  2*j - n*(n+2)
+        elif ordering=='standard':
+            n = np.ceil((-3.0+np.sqrt(9.0+8.0*j))/2.0).astype(int)
+            m = -2*j + n*(n+2)            
         elif ordering == 'noll':
             index = j + 1
             n = ((0.5 * (np.sqrt(8 * index - 7) - 3)) + 1).astype(int)
@@ -167,6 +170,8 @@ class Zernike:
         '''
         if ordering == 'ansi':
             return (self.n*(self.n+2) + self.m)//2
+        elif ordering=='standard':
+            return (self.n*(self.n+2) - self.m)//2            
         elif ordering == 'fringe':
             a = (1 + (n + np.abs(m))/2)**2
             b = 2 * np.abs(m)
