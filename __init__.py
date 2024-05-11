@@ -6,3 +6,4 @@ from .gaussfit import *
 from .airy import *
 from .aocs import *
 from .poly2d import *
+from .median_filter import *
