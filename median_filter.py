@@ -1,3 +1,4 @@
+import numpy as np
 from .medfilt import medfilt2d as mf
     
 def median_filter(ima, kernel_size=3):
