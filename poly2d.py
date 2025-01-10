@@ -34,7 +34,7 @@ def poly2d(coeff):
   
   def p(x, y, coeff=coeff):
     shape = x.shape
-    deg = np.int(0.5*(np.sqrt(1+ 8*len(coeff))-1))-1
+    deg = int(0.5*(np.sqrt(1+ 8*len(coeff))-1))-1
     
     A = polyvander2d(x.flatten(), y.flatten(), [deg, deg])
     
